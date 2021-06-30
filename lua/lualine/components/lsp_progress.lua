@@ -25,7 +25,7 @@ LspProgress.default = {
 	display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' } },
 	display_spinner = true,
 	display_lsp_client_name = true,
-	timer = { enddelay = 500, spinner = 1000 },
+	timer = { progress_enddelay = 500, spinner = 1000, lsp_client_name_enddelay = 1000 },
 	--spinner_symbols_spinner = { '-', '/', '|', "\\" },
 	spinner_symbols = { ' ', ' ', ' ', ' ', ' ', ' ' },
 }
@@ -88,36 +88,45 @@ end
 
 LspProgress.register_progress = function(self)
   self.clients = {}
-  self.progress_callback = function (_, _, msg, client_id)
+
+  self.progress_callback = function (_, _, msg, client_id_int)
   	local key = msg.token
   	local val = msg.value
+	local client_id = tostring(client_id_int)
 
 	-- print(vim.inspect(msg))
 
   	if key then
 		if self.clients[client_id] == nil then
-			self.clients[client_id] = { progress = {}, name = vim.lsp.get_client_by_id(client_id).name }
+			self.clients[client_id] = { progress = {}, name = vim.lsp.get_client_by_id(client_id_int).name }
+			--print('INITIALISE!!!!!!!!!!!!!!!!')
 		end
 		local progress_collection = self.clients[client_id].progress
 		if progress_collection[key] == nil then
+			--print(key)
+			--print(vim.inspect(progress_collection))
+			--print(vim.inspect(msg))
 			progress_collection[key] = { title = nil, message = nil, percentage = nil }
 		end
 
 		local progress = progress_collection[key]
-
-		--print(vim.inspect(progress))
+		--print("'" .. client_id .. "'")
+		--print(vim.inspect(progress_collection))
 
   		if val then
   			if val.kind == 'begin' then
 				progress.title = val.title
+				--print('"' .. key .. ': ' .. val.title .. '"')
   			end
 			if val.kind == 'report' then
+				--print('"progress: ' .. key .. '.. ' .. vim.inspect(progress) .. '"')
 				if val.percentage then
 					progress.percentage = val.percentage
 				end
 				if val.message then
 					progress.message = val.message
 				end
+				--print('"progress: ' .. key .. '.. ' .. vim.inspect(progress) .. '"')
   			end
 			if val.kind == 'end' then
 				if progress.percentage then
@@ -125,19 +134,23 @@ LspProgress.register_progress = function(self)
 					progress.message = 'Completed'
 				end
 				vim.defer_fn(function() 
+					--print('Removing: "' .. key .. '"')
 					if self.clients[client_id] then
 						self.clients[client_id].progress[key] = nil
-						self:update_progress()
-						vim.defer_fn(function()
-							if self.clients[client_id] and #self.clients[client_id].progress == 0 then
-								self.clients[client_id] = nil
-							end
-						end, 1000)
 					end
-				end, self.options.timer.enddelay)
+					vim.defer_fn(function()
+						local has_items = false
+						for _, _ in pairs(self.clients[client_id].progress) do
+							has_items = 1
+							break
+						end
+						if has_items == false then
+							self.clients[client_id] = nil
+						end
+					end, self.options.timer.lsp_client_name_enddelay)
+				end, self.options.timer.progress_enddelay)
 			end
   		end
-		self:update_progress()
 		--print(vim.inspect(msg))
   	end
   end
@@ -152,20 +165,22 @@ LspProgress.update_progress = function(self)
 
 	for _, client in pairs(self.clients) do
 		for _, display_component in pairs(self.options.display_components) do
-			if display_component == 'lsp_client_name' then
-				if options.display_lsp_client_name then
-					if options.colors.use then
-						table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. client.name)
-					else
-						table.insert(result, client.name)
-					end
+			if display_component == 'lsp_client_name' and options.display_lsp_client_name then
+				if options.colors.use then
+					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. client.name)
+				else
+					table.insert(result, client.name)
 				end
 			end
-			if display_component == 'spinner' then
-				if options.colors.use then
-					table.insert(result, highlight.component_format_highlight(self.highlights.spinner) .. self.spinner.symbol)
-				else
-					table.insert(result, self.spinner.symbol)
+			if display_component == 'spinner' and options.display_spinner then
+				local progress = client.progress
+				for _, _ in pairs(progress) do
+					if options.colors.use then
+						table.insert(result, highlight.component_format_highlight(self.highlights.spinner) .. self.spinner.symbol)
+					else
+						table.insert(result, self.spinner.symbol)
+					end
+					break
 				end
 			end
 			if type(display_component) == "table" then
@@ -173,7 +188,7 @@ LspProgress.update_progress = function(self)
 			end
 		end
 	end
-	if #result > 1 or (#result > 0 and self.spinner == false) then
+	if #result > 0 then
 		self.progress_message = table.concat(result, options.seperators.seperator)
 	else
 		self.progress_message = ''
@@ -181,22 +196,23 @@ LspProgress.update_progress = function(self)
 end
 
 LspProgress.update_progress_components = function(self, result, display_components, client_progress)
-		local p = {}
-		local options = self.options
-		for _, progress in pairs(client_progress) do
-			if progress.title then
-				for _, i in pairs(display_components) do
-					if progress[i] then
-						if options.colors.use then
-							table.insert(p, highlight.component_format_highlight(self.highlights[i]) .. options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
-						else 
-							table.insert(p, options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
-						end
+	local p = {}
+	local options = self.options
+	for _, progress in pairs(client_progress) do
+		--print(vim.inspect(progress) .. '\n\r')
+		if progress.title then
+			for _, i in pairs(display_components) do
+				if progress[i] then
+					if options.colors.use then
+						table.insert(p, highlight.component_format_highlight(self.highlights[i]) .. options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
+					else 
+						table.insert(p, options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
 					end
 				end
-				table.insert(result, table.concat(p, ''))
 			end
+			table.insert(result, table.concat(p, ''))
 		end
+	end
 --	print(vim.inspect(progress))
 end
 
