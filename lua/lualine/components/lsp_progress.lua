@@ -22,8 +22,6 @@ LspProgress.default = {
 		spinner = { pre = '', post = '' },
 	},
 	display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' } },
-	display_spinner = true,
-	display_lsp_client_name = true,
 	timer = { progress_enddelay = 500, spinner = 1000, lsp_client_name_enddelay = 1000 },
 	--spinner_symbols_spinner = { '-', '/', '|', "\\" },
 	spinner_symbols = { ' ', ' ', ' ', ' ', ' ', ' ' },
@@ -37,14 +35,11 @@ LspProgress.new = function(self, options, child)
 										new_lsp_progress.options.colors or {})
   new_lsp_progress.options.seperators = vim.tbl_extend('force', LspProgress.default.seperators, 
 										new_lsp_progress.options.seperators or {})
-  new_lsp_progress.options.display_components = vim.tbl_extend('force', LspProgress.default.display_components, 
-										new_lsp_progress.options.display_components or {})
+  new_lsp_progress.options.display_components = new_lsp_progress.options.display_components or LspProgress.default.display_components
   new_lsp_progress.options.timer = vim.tbl_extend('force', LspProgress.default.timer, 
 										new_lsp_progress.options.timer or {})
   new_lsp_progress.options.spinner_symbols = vim.tbl_extend('force', LspProgress.default.spinner_symbols, 
 										new_lsp_progress.options.spinner_symbols or {})
-  new_lsp_progress.options.display_spinner = new_lsp_progress.options.display_spinner or LspProgress.default.display_spinner
-  new_lsp_progress.options.display_lsp_client_name = new_lsp_progress.options.display_lsp_client_name or LspProgress.default.display_lsp_client_name
 
   new_lsp_progress.highlights = { percentage = '', title = '', message = '' }
   if new_lsp_progress.options.colors.use then
@@ -71,8 +66,11 @@ LspProgress.new = function(self, options, child)
 
   new_lsp_progress:register_progress()
   -- No point in setting spinner callbacks if it is not displayed.
-  if new_lsp_progress.options.display_spinner then
-	  new_lsp_progress:setup_spinner()
+  for _, display_component in pairs(new_lsp_progress.options.display_components) do
+	  if display_component == 'spinner' then
+		  new_lsp_progress:setup_spinner()
+		  break
+	  end
   end
 
   return new_lsp_progress
@@ -151,14 +149,14 @@ LspProgress.update_progress = function(self)
 
 	for _, client in pairs(self.clients) do
 		for _, display_component in pairs(self.options.display_components) do
-			if display_component == 'lsp_client_name' and options.display_lsp_client_name then
+			if display_component == 'lsp_client_name' then
 				if options.colors.use then
 					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. options.seperators.lsp_client_name.pre .. client.name .. options.seperators.lsp_client_name.post)
 				else
 					table.insert(result, options.seperators.lsp_client_name.pre .. client.name .. options.seperators.lsp_client_name.post)
 				end
 			end
-			if display_component == 'spinner' and options.display_spinner then
+			if display_component == 'spinner' then
 				local progress = client.progress
 				for _, _ in pairs(progress) do
 					if options.colors.use then
