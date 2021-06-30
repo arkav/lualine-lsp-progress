@@ -167,18 +167,18 @@ LspProgress.update_progress = function(self)
 		for _, display_component in pairs(self.options.display_components) do
 			if display_component == 'lsp_client_name' and options.display_lsp_client_name then
 				if options.colors.use then
-					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. client.name)
+					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. options.seperators.lsp_client_name.pre .. client.name .. options.seperators.lsp_client_name.post)
 				else
-					table.insert(result, client.name)
+					table.insert(result, options.seperators.lsp_client_name.pre .. client.name .. options.seperators.lsp_client_name.post)
 				end
 			end
 			if display_component == 'spinner' and options.display_spinner then
 				local progress = client.progress
 				for _, _ in pairs(progress) do
 					if options.colors.use then
-						table.insert(result, highlight.component_format_highlight(self.highlights.spinner) .. self.spinner.symbol)
+						table.insert(result, highlight.component_format_highlight(self.highlights.spinner) .. options.seperators.spinner.pre .. self.spinner.symbol .. options.seperators.spinner.post)
 					else
-						table.insert(result, self.spinner.symbol)
+						table.insert(result, options.seperators.spinner.pre .. self.spinner.symbol .. options.seperators.spinner.post)
 					end
 					break
 				end
