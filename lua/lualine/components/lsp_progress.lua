@@ -3,7 +3,6 @@ local utils = require('lualine.utils.utils')
 
 local LspProgress = require('lualine.component'):new()
 
---print('Hello\n')
 -- LuaFormatter off
 LspProgress.default = {
 	colors = {
@@ -76,7 +75,6 @@ LspProgress.new = function(self, options, child)
 	  new_lsp_progress:setup_spinner()
   end
 
-  -- print(LspProgress.progress.message)
   return new_lsp_progress
 end
 
@@ -94,39 +92,29 @@ LspProgress.register_progress = function(self)
   	local val = msg.value
 	local client_id = tostring(client_id_int)
 
-	-- print(vim.inspect(msg))
 
   	if key then
 		if self.clients[client_id] == nil then
 			self.clients[client_id] = { progress = {}, name = vim.lsp.get_client_by_id(client_id_int).name }
-			--print('INITIALISE!!!!!!!!!!!!!!!!')
 		end
 		local progress_collection = self.clients[client_id].progress
 		if progress_collection[key] == nil then
-			--print(key)
-			--print(vim.inspect(progress_collection))
-			--print(vim.inspect(msg))
 			progress_collection[key] = { title = nil, message = nil, percentage = nil }
 		end
 
 		local progress = progress_collection[key]
-		--print("'" .. client_id .. "'")
-		--print(vim.inspect(progress_collection))
 
   		if val then
   			if val.kind == 'begin' then
 				progress.title = val.title
-				--print('"' .. key .. ': ' .. val.title .. '"')
   			end
 			if val.kind == 'report' then
-				--print('"progress: ' .. key .. '.. ' .. vim.inspect(progress) .. '"')
 				if val.percentage then
 					progress.percentage = val.percentage
 				end
 				if val.message then
 					progress.message = val.message
 				end
-				--print('"progress: ' .. key .. '.. ' .. vim.inspect(progress) .. '"')
   			end
 			if val.kind == 'end' then
 				if progress.percentage then
@@ -134,7 +122,6 @@ LspProgress.register_progress = function(self)
 					progress.message = 'Completed'
 				end
 				vim.defer_fn(function() 
-					--print('Removing: "' .. key .. '"')
 					if self.clients[client_id] then
 						self.clients[client_id].progress[key] = nil
 					end
@@ -151,7 +138,6 @@ LspProgress.register_progress = function(self)
 				end, self.options.timer.progress_enddelay)
 			end
   		end
-		--print(vim.inspect(msg))
   	end
   end
 
@@ -199,7 +185,6 @@ LspProgress.update_progress_components = function(self, result, display_componen
 	local p = {}
 	local options = self.options
 	for _, progress in pairs(client_progress) do
-		--print(vim.inspect(progress) .. '\n\r')
 		if progress.title then
 			for _, i in pairs(display_components) do
 				if progress[i] then
@@ -213,7 +198,6 @@ LspProgress.update_progress_components = function(self, result, display_componen
 			table.insert(result, table.concat(p, ''))
 		end
 	end
---	print(vim.inspect(progress))
 end
 
 
