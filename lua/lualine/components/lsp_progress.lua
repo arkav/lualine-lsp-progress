@@ -14,7 +14,8 @@ LspProgress.default = {
 	  use = true,
 	},
 	seperators = {
-		seperator = ' | ',
+		component = ' ',
+		progress = ' | ',
 		message = { pre = '(', post = ')'},
 		percentage = { pre = '', post = '%% ' },
 		title = { pre = '', post = ': ' },
@@ -22,9 +23,12 @@ LspProgress.default = {
 		spinner = { pre = '', post = '' },
 	},
 	display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' } },
-	timer = { progress_enddelay = 500, spinner = 1000, lsp_client_name_enddelay = 1000 },
-	--spinner_symbols_spinner = { '-', '/', '|', "\\" },
-	spinner_symbols = { ' ', ' ', ' ', ' ', ' ', ' ' },
+	timer = { progress_enddelay = 500, spinner = 500, lsp_client_name_enddelay = 1000 },
+	spinner_symbols_dice = { ' ', ' ', ' ', ' ', ' ', ' ' }, -- Nerd fonts needed
+	spinner_symbols_moon = { '🌑 ', '🌒 ', '🌓 ', '🌔 ', '🌕 ', '🌖 ', '🌗 ', '🌘 ' },
+	spinner_symbols_square = {'▙ ', '▛ ', '▜ ', '▟ ' },
+	spinner_symbols = {'▙ ', '▛ ', '▜ ', '▟ ' },
+	message = { commenced = 'In Progress', completed = 'Completed' },
 }
 
 -- Initializer
@@ -40,6 +44,8 @@ LspProgress.new = function(self, options, child)
 										new_lsp_progress.options.timer or {})
   new_lsp_progress.options.spinner_symbols = vim.tbl_extend('force', LspProgress.default.spinner_symbols, 
 										new_lsp_progress.options.spinner_symbols or {})
+  new_lsp_progress.options.message = vim.tbl_extend('force', LspProgress.default.message, 
+										new_lsp_progress.options.message or {})
 
   new_lsp_progress.highlights = { percentage = '', title = '', message = '' }
   if new_lsp_progress.options.colors.use then
@@ -105,6 +111,7 @@ LspProgress.register_progress = function(self)
   		if val then
   			if val.kind == 'begin' then
 				progress.title = val.title
+				progress.message = self.options.message.commenced
   			end
 			if val.kind == 'report' then
 				if val.percentage then
@@ -117,8 +124,8 @@ LspProgress.register_progress = function(self)
 			if val.kind == 'end' then
 				if progress.percentage then
 					progress.percentage = '100'
-					progress.message = 'Completed'
 				end
+				progress.message = self.options.message.completed
 				vim.defer_fn(function() 
 					if self.clients[client_id] then
 						self.clients[client_id].progress[key] = nil
@@ -173,7 +180,7 @@ LspProgress.update_progress = function(self)
 		end
 	end
 	if #result > 0 then
-		self.progress_message = table.concat(result, options.seperators.seperator)
+		self.progress_message = table.concat(result, options.seperators.component)
 	else
 		self.progress_message = ''
 	end
@@ -184,17 +191,19 @@ LspProgress.update_progress_components = function(self, result, display_componen
 	local options = self.options
 	for _, progress in pairs(client_progress) do
 		if progress.title then
+			local d = {}
 			for _, i in pairs(display_components) do
-				if progress[i] then
+				if progress[i] and progress[i] ~= '' then
 					if options.colors.use then
-						table.insert(p, highlight.component_format_highlight(self.highlights[i]) .. options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
+						table.insert(d, highlight.component_format_highlight(self.highlights[i]) .. options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
 					else 
-						table.insert(p, options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
+						table.insert(d, options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
 					end
 				end
 			end
-			table.insert(result, table.concat(p, ''))
+			table.insert(p, table.concat(d, ''))
 		end
+		table.insert(result, table.concat(p, options.seperators.progress))
 	end
 end
 
@@ -207,12 +216,8 @@ LspProgress.setup_spinner = function(self)
 	local timer = vim.loop.new_timer()
 	timer:start(0, self.options.timer.spinner,
 	function()
-	--	print('Spinner\n\r')
-	--	print(LspProgress.spinner.index .. '\n\r')
 		self.spinner.index = (self.spinner.index % self.spinner.symbol_mod) + 1
-	--	print(LspProgress.spinner.index .. '\n\r')
 		self.spinner.symbol = self.options.spinner_symbols[self.spinner.index]
-	--	print(LspProgress.spinner.index .. ': ' .. LspProgress.spinner.symbol .. '\n\r')
 	end)
 end
 
