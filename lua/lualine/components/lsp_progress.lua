@@ -132,9 +132,11 @@ LspProgress.register_progress = function(self)
 					end
 					vim.defer_fn(function()
 						local has_items = false
-						for _, _ in pairs(self.clients[client_id].progress) do
-							has_items = 1
-							break
+						if self.clients[client_id] and self.clients[client_id].progress then
+							for _, _ in pairs(self.clients[client_id].progress) do
+								has_items = 1
+								break
+							end
 						end
 						if has_items == false then
 							self.clients[client_id] = nil
