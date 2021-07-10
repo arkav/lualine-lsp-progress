@@ -40,7 +40,7 @@ use 'arkav/lualine-lsp-progress'
 	* Progress (individual actions undertaken by the LSP)
 		* Title of action undertaken by LSP e.g. Indexing
 		* Message from Lsp
-		* Percentage compplete
+		* Percentage complete
 * pre and post items - before each specific lsp item display text
 * Spinner
 	* Symbols
