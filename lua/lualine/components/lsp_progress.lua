@@ -13,7 +13,7 @@ LspProgress.default = {
 	  lsp_client_name = '#c678dd',
 	  use = true,
 	},
-	seperators = {
+	separators = {
 		component = ' ',
 		progress = ' | ',
 		message = { pre = '(', post = ')'},
@@ -37,8 +37,8 @@ LspProgress.new = function(self, options, child)
 
   new_lsp_progress.options.colors = vim.tbl_extend('force', LspProgress.default.colors, 
 										new_lsp_progress.options.colors or {})
-  new_lsp_progress.options.seperators = vim.tbl_extend('force', LspProgress.default.seperators, 
-										new_lsp_progress.options.seperators or {})
+  new_lsp_progress.options.separators = vim.tbl_deep_extend('force', LspProgress.default.separators, 
+										new_lsp_progress.options.separators or {})
   new_lsp_progress.options.display_components = new_lsp_progress.options.display_components or LspProgress.default.display_components
   new_lsp_progress.options.timer = vim.tbl_extend('force', LspProgress.default.timer, 
 										new_lsp_progress.options.timer or {})
@@ -160,18 +160,18 @@ LspProgress.update_progress = function(self)
 		for _, display_component in pairs(self.options.display_components) do
 			if display_component == 'lsp_client_name' then
 				if options.colors.use then
-					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. options.seperators.lsp_client_name.pre .. client.name .. options.seperators.lsp_client_name.post)
+					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post)
 				else
-					table.insert(result, options.seperators.lsp_client_name.pre .. client.name .. options.seperators.lsp_client_name.post)
+					table.insert(result, options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post)
 				end
 			end
 			if display_component == 'spinner' then
 				local progress = client.progress
 				for _, _ in pairs(progress) do
 					if options.colors.use then
-						table.insert(result, highlight.component_format_highlight(self.highlights.spinner) .. options.seperators.spinner.pre .. self.spinner.symbol .. options.seperators.spinner.post)
+						table.insert(result, highlight.component_format_highlight(self.highlights.spinner) .. options.separators.spinner.pre .. self.spinner.symbol .. options.separators.spinner.post)
 					else
-						table.insert(result, options.seperators.spinner.pre .. self.spinner.symbol .. options.seperators.spinner.post)
+						table.insert(result, options.separators.spinner.pre .. self.spinner.symbol .. options.separators.spinner.post)
 					end
 					break
 				end
@@ -182,7 +182,7 @@ LspProgress.update_progress = function(self)
 		end
 	end
 	if #result > 0 then
-		self.progress_message = table.concat(result, options.seperators.component)
+		self.progress_message = table.concat(result, options.separators.component)
 	else
 		self.progress_message = ''
 	end
@@ -197,15 +197,15 @@ LspProgress.update_progress_components = function(self, result, display_componen
 			for _, i in pairs(display_components) do
 				if progress[i] and progress[i] ~= '' then
 					if options.colors.use then
-						table.insert(d, highlight.component_format_highlight(self.highlights[i]) .. options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
+						table.insert(d, highlight.component_format_highlight(self.highlights[i]) .. options.separators[i].pre .. progress[i] .. options.separators[i].post)
 					else 
-						table.insert(d, options.seperators[i].pre .. progress[i] .. options.seperators[i].post)
+						table.insert(d, options.separators[i].pre .. progress[i] .. options.separators[i].post)
 					end
 				end
 			end
 			table.insert(p, table.concat(d, ''))
 		end
-		table.insert(result, table.concat(p, options.seperators.progress))
+		table.insert(result, table.concat(p, options.separators.progress))
 	end
 end
 

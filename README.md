@@ -118,7 +118,7 @@ ins_left {
 	  lsp_client_name = colors.magenta,
 	  use = true,
 	},
-	seperators = {
+	separators = {
 		component = ' ',
 		progress = ' | ',
 		message = { pre = '(', post = ')'},
