@@ -6,12 +6,12 @@ local LspProgress = require('lualine.component'):new()
 -- LuaFormatter off
 LspProgress.default = {
 	colors = {
-	percentage  = '#ffffff',
-		title  = '#ffffff',
-		message  = '#ffffff',
+	percentage = '#ffffff',
+		title = '#ffffff',
+		message = '#ffffff',
 		spinner = '#008080',
 		lsp_client_name = '#c678dd',
-		use = true,
+		use = false,
 	},
 	separators = {
 		component = ' ',
@@ -53,15 +53,15 @@ LspProgress.new = function(self, options, child)
 	-- Setup callback to get updates from the lsp to update lualine.
 
 	new_lsp_progress:register_progress()
-	-- No point in setting spinner callbacks if it is not displayed.
+		-- No point in setting spinner callbacks if it is not displayed.
 	for _, display_component in pairs(new_lsp_progress.options.display_components) do
 		if display_component == 'spinner' then
 			new_lsp_progress:setup_spinner()
-		break
+			break
+		end
 	end
-end
 
-return new_lsp_progress
+	return new_lsp_progress
 end
 
 LspProgress.update_status = function(self)
@@ -73,17 +73,16 @@ end
 LspProgress.register_progress = function(self)
 	self.clients = {}
 
-	self.progress_callback = function (_, _, msg, client_id_int)
+	self.progress_callback = function(_, msg, info)
 		local key = msg.token
 		local val = msg.value
-		local client_id = tostring(client_id_int)
-
+		local client_key = tostring(info.client_id)
 
 		if key then
-			if self.clients[client_id] == nil then
-				self.clients[client_id] = { progress = {}, name = vim.lsp.get_client_by_id(client_id_int).name }
+			if self.clients[client_key] == nil then
+				self.clients[client_key] = { progress = {}, name = vim.lsp.get_client_by_id(info.client_id).name }
 			end
-			local progress_collection = self.clients[client_id].progress
+			local progress_collection = self.clients[client_key].progress
 			if progress_collection[key] == nil then
 				progress_collection[key] = { title = nil, message = nil, percentage = nil }
 			end
@@ -108,20 +107,20 @@ LspProgress.register_progress = function(self)
 						progress.percentage = '100'
 					end
 					progress.message = self.options.message.completed
-					vim.defer_fn(function() 
-						if self.clients[client_id] then
-							self.clients[client_id].progress[key] = nil
+					vim.defer_fn(function()
+						if self.clients[client_key] then
+							self.clients[client_key].progress[key] = nil
 						end
 						vim.defer_fn(function()
 							local has_items = false
-							if self.clients[client_id] and self.clients[client_id].progress then
-								for _, _ in pairs(self.clients[client_id].progress) do
+							if self.clients[client_key] and self.clients[client_key].progress then
+								for _, _ in pairs(self.clients[client_key].progress) do
 									has_items = 1
 									break
 								end
 							end
 							if has_items == false then
-								self.clients[client_id] = nil
+								self.clients[client_key] = nil
 							end
 						end, self.options.timer.lsp_client_name_enddelay)
 					end, self.options.timer.progress_enddelay)
@@ -129,9 +128,25 @@ LspProgress.register_progress = function(self)
 			end
 		end
 	end
-
-	vim.lsp.handlers["$/progress"] = self.progress_callback
+	-- TODO: remove once new api makes it into stable
+	-- we need a wrapper around our function here to handle the new lsp handler protocol while still supporting stable
+	vim.lsp.handlers["$/progress"] = function(...)
+		local arg = select(4, ...)
+		if type(arg) ~= 'number' then
+			self.progress_callback(...)
+		else
+			self.progress_callback(
+				select(1, ...), -- err
+				select(3, ...), -- msg
+				{
+					client_id = select(4, ...)
+				}
+			)
+		end
+	end
 end
+
+-- add support for new handler format
 
 LspProgress.update_progress = function(self)
 	local options = self.options
