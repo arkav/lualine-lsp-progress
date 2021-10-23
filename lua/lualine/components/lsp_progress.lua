@@ -1,7 +1,6 @@
 local highlight = require('lualine.highlight')
-local utils = require('lualine.utils.utils')
 
-local LspProgress = require('lualine.component'):new()
+local LspProgress = require('lualine.component'):extend()
 
 -- LuaFormatter off
 LspProgress.default = {
@@ -32,36 +31,34 @@ LspProgress.default = {
 }
 
 -- Initializer
-LspProgress.new = function(self, options, child)
-	local new_lsp_progress = self._parent:new(options, child or LspProgress)
+LspProgress.init = function(self, options)
+	LspProgress.super.init(self, options)
 
-	new_lsp_progress.options.colors = vim.tbl_extend('force', LspProgress.default.colors, new_lsp_progress.options.colors or {})
-	new_lsp_progress.options.separators = vim.tbl_deep_extend('force', LspProgress.default.separators, new_lsp_progress.options.separators or {})
-	new_lsp_progress.options.display_components = new_lsp_progress.options.display_components or LspProgress.default.display_components
-	new_lsp_progress.options.timer = vim.tbl_extend('force', LspProgress.default.timer, new_lsp_progress.options.timer or {})
-	new_lsp_progress.options.spinner_symbols = vim.tbl_extend('force', LspProgress.default.spinner_symbols, new_lsp_progress.options.spinner_symbols or {})
-	new_lsp_progress.options.message = vim.tbl_extend('force', LspProgress.default.message, new_lsp_progress.options.message or {})
+	self.options.colors = vim.tbl_extend('force', LspProgress.default.colors, self.options.colors or {})
+	self.options.separators = vim.tbl_deep_extend('force', LspProgress.default.separators, self.options.separators or {})
+	self.options.display_components = self.options.display_components or LspProgress.default.display_components
+	self.options.timer = vim.tbl_extend('force', LspProgress.default.timer, self.options.timer or {})
+	self.options.spinner_symbols = vim.tbl_extend('force', LspProgress.default.spinner_symbols, self.options.spinner_symbols or {})
+	self.options.message = vim.tbl_extend('force', LspProgress.default.message, self.options.message or {})
 
-	new_lsp_progress.highlights = { percentage = '', title = '', message = '' }
-	if new_lsp_progress.options.colors.use then
-		new_lsp_progress.highlights.title = highlight.create_component_highlight_group({ fg = new_lsp_progress.options.colors.title }, 'lspprogress_title', new_lsp_progress.options)
-		new_lsp_progress.highlights.percentage = highlight.create_component_highlight_group({ fg = new_lsp_progress.options.colors.percentage }, 'lspprogress_percentage', new_lsp_progress.options)
-		new_lsp_progress.highlights.message = highlight.create_component_highlight_group({ fg = new_lsp_progress.options.colors.message }, 'lspprogress_message', new_lsp_progress.options)
-		new_lsp_progress.highlights.spinner = highlight.create_component_highlight_group({ fg = new_lsp_progress.options.colors.spinner }, 'lspprogress_spinner', new_lsp_progress.options)
-		new_lsp_progress.highlights.lsp_client_name = highlight.create_component_highlight_group({ fg = new_lsp_progress.options.colors.lsp_client_name }, 'lspprogress_lsp_client_name', new_lsp_progress.options)
+	self.highlights = { percentage = '', title = '', message = '' }
+	if self.options.colors.use then
+		self.highlights.title = highlight.create_component_highlight_group({ fg = self.options.colors.title }, 'lspprogress_title', self.options)
+		self.highlights.percentage = highlight.create_component_highlight_group({ fg = self.options.colors.percentage }, 'lspprogress_percentage', self.options)
+		self.highlights.message = highlight.create_component_highlight_group({ fg = self.options.colors.message }, 'lspprogress_message', self.options)
+		self.highlights.spinner = highlight.create_component_highlight_group({ fg = self.options.colors.spinner }, 'lspprogress_spinner', self.options)
+		self.highlights.lsp_client_name = highlight.create_component_highlight_group({ fg = self.options.colors.lsp_client_name }, 'lspprogress_lsp_client_name', self.options)
 	end
 	-- Setup callback to get updates from the lsp to update lualine.
 
-	new_lsp_progress:register_progress()
+	self:register_progress()
 		-- No point in setting spinner callbacks if it is not displayed.
-	for _, display_component in pairs(new_lsp_progress.options.display_components) do
+	for _, display_component in pairs(self.options.display_components) do
 		if display_component == 'spinner' then
-			new_lsp_progress:setup_spinner()
+			self:setup_spinner()
 			break
 		end
 	end
-
-	return new_lsp_progress
 end
 
 LspProgress.update_status = function(self)
