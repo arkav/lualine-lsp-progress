@@ -177,6 +177,9 @@ LspProgress.update_progress = function(self)
 	end
 	if #result > 0 then
 		self.progress_message = table.concat(result, options.separators.component)
+		if type(vim.g.lualine_progress_msglen) == "number" then
+			self.progress_message = string.sub(self.progress_message, 1, vim.g.lualine_progress_msglen)
+		end
 	else
 		self.progress_message = ''
 	end
