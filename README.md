@@ -129,6 +129,7 @@ ins_left {
 		message = { commenced = 'In Progress', completed = 'Completed' },
 	},
 	display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' } },
+	-- Each of these can be set to false to disable the timer
 	timer = { progress_enddelay = 500, spinner = 1000, lsp_client_name_enddelay = 1000 },
 	spinner_symbols = { '🌑 ', '🌒 ', '🌓 ', '🌔 ', '🌕 ', '🌖 ', '🌗 ', '🌘 ' },
 }
