@@ -22,6 +22,7 @@ LspProgress.default = {
 		spinner = { pre = '', post = '' },
 	},
 	display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' } },
+	-- Each of these can be set to false to disable the timer
 	timer = { progress_enddelay = 500, spinner = 500, lsp_client_name_enddelay = 1000 },
 	spinner_symbols_dice = { ' ', ' ', ' ', ' ', ' ', ' ' }, -- Nerd fonts needed
 	spinner_symbols_moon = { '🌑 ', '🌒 ', '🌓 ', '🌔 ', '🌕 ', '🌖 ', '🌗 ', '🌘 ' },
@@ -104,9 +105,15 @@ LspProgress.register_progress = function(self)
 						progress.percentage = '100'
 					end
 					progress.message = self.options.message.completed
+					if self.options.timer.progress_enddelay == false then
+						return
+					end
 					vim.defer_fn(function()
 						if self.clients[client_key] then
 							self.clients[client_key].progress[key] = nil
+						end
+						if self.options.timer.lsp_client_name_enddelay == false then
+							return
 						end
 						vim.defer_fn(function()
 							local has_items = false
@@ -209,6 +216,9 @@ LspProgress.setup_spinner = function(self)
 	self.spinner.index = 0
 	self.spinner.symbol_mod = #self.options.spinner_symbols
 	self.spinner.symbol = self.options.spinner_symbols[1]
+	if self.options.timer.spinner == false then
+		return
+	end
 	local timer = vim.loop.new_timer()
 	timer:start(0, self.options.timer.spinner,
 	function()
