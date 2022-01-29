@@ -1,5 +1,5 @@
 # lualine-lsp-progress
-Information provided by active lsp clients from the `$/progress` endpoint as a statusline component for [lualine.nvim](https://raw.githubusercontent.com/hoob3rt/lualine.nvim).
+Information provided by active lsp clients from the `$/progress` endpoint as a statusline component for [lualine.nvim](https://github.com/nvim-lualine/lualine.nvim).
 
 ## Why?
 Some LSP servers take a while to initalize. This provides a nice visual indicator to show which clients are ready to use.
