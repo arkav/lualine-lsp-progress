@@ -110,6 +110,8 @@ ins_left {
 	display_components = { 'lsp_client_name', { 'title', 'percentage', 'message' }},
 	-- With spinner
 	-- display_components = { 'lsp_client_name', 'spinner', { 'title', 'percentage', 'message' }},
+	-- Display the lsp client name after initialization
+        -- display_lsp_name_after_initialization = true,
 	colors = {
 	  percentage  = colors.cyan,
 	  title  = colors.cyan,

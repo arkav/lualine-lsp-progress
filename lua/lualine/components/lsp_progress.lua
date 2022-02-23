@@ -28,6 +28,7 @@ LspProgress.default = {
 	spinner_symbols_square = {'▙ ', '▛ ', '▜ ', '▟ ' },
 	spinner_symbols = {'▙ ', '▛ ', '▜ ', '▟ ' },
 	message = { commenced = 'In Progress', completed = 'Completed' },
+        display_lsp_name_after_initialization = false,
 }
 
 -- Initializer
@@ -149,14 +150,16 @@ LspProgress.update_progress = function(self)
 	local options = self.options
 	local result = {}
 
-
 	for _, client in pairs(self.clients) do
 		for _, display_component in pairs(self.options.display_components) do
 			if display_component == 'lsp_client_name' then
 				if options.colors.use then
-					table.insert(result, highlight.component_format_highlight(self.highlights.lsp_client_name) .. options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post)
+                    self.lsp_client_name = highlight.component_format_highlight(self.highlights.lsp_client_name) .. options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post
+					table.insert(result, self.lsp_client_name)
 				else
-					table.insert(result, options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post)
+                    self.lsp_client_name = options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post
+					table.insert(result, self.lsp_client_name)
+
 				end
 			end
 			if display_component == 'spinner' then
@@ -178,7 +181,11 @@ LspProgress.update_progress = function(self)
 	if #result > 0 then
 		self.progress_message = table.concat(result, options.separators.component)
 	else
-		self.progress_message = ''
+        if options.display_lsp_name_after_initialization then
+            self.progress_message = self.lsp_client_name
+        else
+            self.progress_message = ''
+        end
 	end
 end
 
