@@ -87,80 +87,57 @@ end
 LspProgress.register_progress = function(self)
   self.clients = {}
 
-  self.progress_callback = function(_, msg, info)
-    local key = msg.token
-    local val = msg.value
-    local client_key = tostring(info.client_id)
+  self.progress_callback = function(msgs)
+    for _, msg in ipairs(msgs) do
+      local client_name = msg.name
 
-    if key then
-      if self.clients[client_key] == nil then
-        self.clients[client_key] = { progress = {}, name = vim.lsp.get_client_by_id(info.client_id).name }
-      end
-      local progress_collection = self.clients[client_key].progress
-      if progress_collection[key] == nil then
-        progress_collection[key] = { title = nil, message = nil, percentage = nil }
+      if self.clients[client_name] == nil then
+        self.clients[client_name] = { progress = {}, name = client_name }
       end
 
-      local progress = progress_collection[key]
+      local progress = self.clients[client_name].progress
 
-      if val then
-        if val.kind == 'begin' then
-          progress.title = val.title
-          progress.message = self.options.message.commenced
+      progress.message = self.options.message.commenced
+      if msg.title then
+        progress.title = msg.title
+      end
+      if msg.percentage then
+        progress.percentage = msg.percentage
+      end
+      if msg.message then
+        progress.message = msg.message
+      end
+      if msg.done then
+        if progress.percentage then
+          progress.percentage = '100'
         end
-        if val.kind == 'report' then
-          if val.percentage then
-            progress.percentage = val.percentage
+        progress.message = self.options.message.completed
+        vim.defer_fn(function()
+          if self.clients[client_name] then
+            self.clients[client_name].progress = {}
           end
-          if val.message then
-            progress.message = val.message
-          end
-        end
-        if val.kind == 'end' then
-          if progress.percentage then
-            progress.percentage = '100'
-          end
-          progress.message = self.options.message.completed
           vim.defer_fn(function()
-            if self.clients[client_key] then
-              self.clients[client_key].progress[key] = nil
+            local has_items = false
+            if self.clients[client_name] and self.clients[client_name].progress then
+              for _, _ in pairs(self.clients[client_name].progress) do
+                has_items = true
+                break
+              end
             end
-            vim.defer_fn(function()
-              local has_items = false
-              if self.clients[client_key] and self.clients[client_key].progress then
-                for _, _ in pairs(self.clients[client_key].progress) do
-                  has_items = 1
-                  break
-                end
-              end
-              if has_items == false then
-                self.clients[client_key] = nil
-              end
-            end, self.options.timer.lsp_client_name_enddelay)
-          end, self.options.timer.progress_enddelay)
-        end
+            if has_items == false then
+              self.clients[client_name] = nil
+            end
+          end, self.options.timer.lsp_client_name_enddelay)
+        end, self.options.timer.progress_enddelay)
       end
     end
   end
-  -- TODO: remove once new api makes it into stable
-  -- we need a wrapper around our function here to handle the new lsp handler protocol while still supporting stable
-  vim.lsp.handlers['$/progress'] = function(...)
-    local arg = select(4, ...)
-    if type(arg) ~= 'number' then
-      self.progress_callback(...)
-    else
-      self.progress_callback(
-        select(1, ...), -- err
-        select(3, ...), -- msg
-        {
-          client_id = select(4, ...),
-        }
-      )
-    end
-  end
+  vim.api.nvim_create_autocmd('User LspProgressUpdate', {
+    callback = function()
+      self.progress_callback(vim.lsp.util.get_progress_messages())
+    end,
+  })
 end
-
--- add support for new handler format
 
 LspProgress.update_progress = function(self)
   local options = self.options
@@ -183,28 +160,19 @@ LspProgress.update_progress = function(self)
             options.separators.lsp_client_name.pre .. client.name .. options.separators.lsp_client_name.post
           )
         end
-      end
-      if display_component == 'spinner' then
-        local progress = client.progress
-        for _, _ in pairs(progress) do
-          if options.colors.use then
-            table.insert(
-              result,
-              highlight.component_format_highlight(self.highlights.spinner)
-                .. options.separators.spinner.pre
-                .. self.spinner.symbol
-                .. options.separators.spinner.post
-            )
-          else
-            table.insert(
-              result,
-              options.separators.spinner.pre .. self.spinner.symbol .. options.separators.spinner.post
-            )
-          end
-          break
+      elseif display_component == 'spinner' then
+        if options.colors.use then
+          table.insert(
+            result,
+            highlight.component_format_highlight(self.highlights.spinner)
+              .. options.separators.spinner.pre
+              .. self.spinner.symbol
+              .. options.separators.spinner.post
+          )
+        else
+          table.insert(result, options.separators.spinner.pre .. self.spinner.symbol .. options.separators.spinner.post)
         end
-      end
-      if type(display_component) == 'table' then
+      elseif type(display_component) == 'table' then
         self:update_progress_components(result, display_component, client.progress)
       end
     end
@@ -216,31 +184,29 @@ LspProgress.update_progress = function(self)
   end
 end
 
-LspProgress.update_progress_components = function(self, result, display_components, client_progress)
+LspProgress.update_progress_components = function(self, result, display_components, progress)
   local p = {}
   local options = self.options
-  for _, progress in pairs(client_progress) do
-    if progress.title then
-      local d = {}
-      for _, i in pairs(display_components) do
-        if progress[i] and progress[i] ~= '' then
-          if options.colors.use then
-            table.insert(
-              d,
-              highlight.component_format_highlight(self.highlights[i])
-                .. options.separators[i].pre
-                .. progress[i]
-                .. options.separators[i].post
-            )
-          else
-            table.insert(d, options.separators[i].pre .. progress[i] .. options.separators[i].post)
-          end
+  if progress.title then
+    local d = {}
+    for _, i in pairs(display_components) do
+      if progress[i] and progress[i] ~= '' then
+        if options.colors.use then
+          table.insert(
+            d,
+            highlight.component_format_highlight(self.highlights[i])
+              .. options.separators[i].pre
+              .. progress[i]
+              .. options.separators[i].post
+          )
+        else
+          table.insert(d, options.separators[i].pre .. progress[i] .. options.separators[i].post)
         end
       end
-      table.insert(p, table.concat(d, ''))
     end
-    table.insert(result, table.concat(p, options.separators.progress))
+    table.insert(p, table.concat(d, ''))
   end
+  table.insert(result, table.concat(p, options.separators.progress))
 end
 
 LspProgress.setup_spinner = function(self)
